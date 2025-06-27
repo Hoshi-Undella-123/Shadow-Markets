@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - DATABASE_URL=postgres://user:pass@timescale1:5432/shadow
+      - DATABASE_REPLICA1=postgres://user:pass@timescale2:5432/shadow
+      - DATABASE_REPLICA2=postgres://user:pass@timescale3:5432/shadow
+  timescale1:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=shadow
+    volumes:
+      - timescale1_data:/var/lib/postgresql/data
+  timescale2:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=shadow
+    volumes:
+      - timescale2_data:/var/lib/postgresql/data
+  timescale3:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=shadow
+    volumes:
+      - timescale3_data:/var/lib/postgresql/data
+
+volumes:
+  timescale1_data:
+  timescale2_data:
+  timescale3_data:
