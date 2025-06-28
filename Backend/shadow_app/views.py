@@ -1,11 +1,14 @@
+from django.http import HttpResponse
 from rest_framework import viewsets
-from .models import Equity, ShadowPrice
-from .serializers import EquitySerializer, ShadowPriceSerializer
+from rest_framework.response import Response
 
-class EquityViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Equity.objects.all()
-    serializer_class = EquitySerializer
+def home(request):
+    return HttpResponse("Welcome to Shadow Markets!")
 
-class ShadowPriceViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ShadowPrice.objects.all()
-    serializer_class = ShadowPriceSerializer
+class EquityViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response({'message': 'Equity endpoint working'})
+
+class ShadowPriceViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response({'message': 'Shadow price endpoint working'})

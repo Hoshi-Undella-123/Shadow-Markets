@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('shadow_app.urls')),
+    path('', include('shadow_app.urls')),  # Only include app urls once at root
 ]

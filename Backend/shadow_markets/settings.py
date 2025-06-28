@@ -18,10 +18,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'channels',
+    'corsheaders',
     'shadow_app',
 ]
 
 MIDDLEWARE = [
+     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -31,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True  # For development only!
 ROOT_URLCONF = 'shadow_markets.urls'
 
 TEMPLATES = [
@@ -61,13 +64,14 @@ def in_docker():
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'shadow'),
-        'USER': os.getenv('POSTGRES_USER', 'user'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'password'),
-        'HOST': 'timescale1' if in_docker() else 'localhost',
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': 'shadow',
+        'USER': 'user',
+        'PASSWORD': 'pass',
+        'HOST': 'localhost',  # CHANGED FROM "timescale1"
+        'PORT': 5432,
     }
 }
+
 
 CHANNEL_LAYERS = {
     'default': {
@@ -87,3 +91,4 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

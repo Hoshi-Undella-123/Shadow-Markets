@@ -3,28 +3,46 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
-
-  kafka:
-    image: bitnami/kafka:latest
-    environment:
-      - KAFKA_ENABLE_KRAFT=yes
-      - KAFKA_CFG_NODE_ID=1
-      - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-    ports:
-      - "9092:9092"
-      - "9093:9093"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   zookeeper:
     image: bitnami/zookeeper:latest
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
+      ALLOW_ANONYMOUS_LOGIN: "yes"
     ports:
       - "2181:2181"
+    healthcheck:
+      test: ["CMD", "zkCli.sh", "ls", "/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  kafka:
+    image: bitnami/kafka:latest
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_ENABLE_KRAFT: "yes"
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "kafka:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   timescale1:
     image: timescale/timescaledb:latest-pg14
@@ -36,6 +54,50 @@ services:
       - "5432:5432"
     volumes:
       - timescale1_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  timescale2:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      POSTGRES_DB: shadow
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale2_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  timescale3:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      POSTGRES_DB: shadow
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - timescale3_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  django:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
 
   backend:
     build: ./backend
@@ -49,11 +111,17 @@ services:
         condition: service_healthy
       timescale1:
         condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
     ports:
       - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_started
 
 volumes:
   timescale1_data:
+  timescale2_data:
+  timescale3_data:
