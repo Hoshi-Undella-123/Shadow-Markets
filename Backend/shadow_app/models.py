@@ -16,3 +16,11 @@ class ShadowPrice(models.Model):
     date = models.DateField()
     price = models.FloatField()
     constraint = models.ForeignKey(Constraint, on_delete=models.CASCADE)
+
+class Emotion(models.Model):
+    equity = models.ForeignKey(Equity, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField()
+    emotion = models.CharField(max_length=50)
+    confidence = models.FloatField()
+    text = models.TextField()
+    source = models.CharField(max_length=100)

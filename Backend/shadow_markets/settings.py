@@ -7,7 +7,7 @@ SECRET_KEY = 'your-secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,10 +64,10 @@ def in_docker():
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'shadow',
-        'USER': 'user',
-        'PASSWORD': 'pass',
-        'HOST': 'localhost',  # CHANGED FROM "timescale1"
+        'NAME': os.getenv('DJANGO_DB_NAME', 'shadow'),
+        'USER': os.getenv('DJANGO_DB_USER', 'user'),
+        'PASSWORD': os.getenv('DJANGO_DB_PASSWORD', 'pass'),
+        'HOST': os.getenv('DJANGO_DB_HOST', 'localhost'),
         'PORT': 5432,
     }
 }
@@ -92,3 +92,15 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+    ],
+    'URL_TRAILING_SLASH': False,
+}

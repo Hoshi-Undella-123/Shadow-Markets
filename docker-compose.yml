@@ -1,127 +1,44 @@
 services:
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-    ports:
-      - "2181:2181"
-    healthcheck:
-      test: ["CMD", "zkCli.sh", "ls", "/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  kafka:
-    image: bitnami/kafka:latest
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    environment:
-      KAFKA_ENABLE_KRAFT: "yes"
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-      KAFKA_CFG_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-    healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "kafka:9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  timescale1:
-    image: timescale/timescaledb:latest-pg14
+  db:
+    image: postgres:14
     environment:
       POSTGRES_DB: shadow
       POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: pass
     ports:
       - "5432:5432"
     volumes:
-      - timescale1_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  timescale2:
-    image: timescale/timescaledb:latest-pg14
-    environment:
-      POSTGRES_DB: shadow
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5433:5432"
-    volumes:
-      - timescale2_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  timescale3:
-    image: timescale/timescaledb:latest-pg14
-    environment:
-      POSTGRES_DB: shadow
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5434:5432"
-    volumes:
-      - timescale3_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d shadow"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  django:
-    build: .
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+      - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
-    env_file: ./backend/.env
+    build:
+      context: ./Backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./Backend:/app
     ports:
       - "8000:8000"
     depends_on:
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      timescale1:
-        condition: service_healthy
+      - db
+    environment:
+      - DJANGO_DB_HOST=db
+      - DJANGO_DB_NAME=shadow
+      - DJANGO_DB_USER=user
+      - DJANGO_DB_PASSWORD=pass
 
   frontend:
     build:
-      context: ./frontend
+      context: ./Frontend
+    command: npm start
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
-      backend:
-        condition: service_started
+      - backend
 
 volumes:
-  timescale1_data:
-  timescale2_data:
-  timescale3_data:
+  postgres_data:

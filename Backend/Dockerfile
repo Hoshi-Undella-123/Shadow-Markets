@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . /app
 
 RUN pip install --upgrade pip
-RUN pip install django djangorestframework channels channels_redis celery psycopg2-binary lightgbm kafka-python
+RUN pip install -r requirements.txt
 
 EXPOSE 8000
 
