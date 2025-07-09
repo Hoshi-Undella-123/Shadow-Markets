@@ -19,7 +19,7 @@ A revolutionary fintech platform for calculating and trading shadow prices.
 - **Virtualized data grid for the frontend**
 - **Horizontal scaling with TimescaleDB**
 
-## Next Steps
+## Next Steps 
 
 - Train your GBM model with `python algorithms_gbm.py --data data/feature_matrix.csv`
 - Launch the streaming bridge with `python kafka_bridge.py`
