@@ -1,0 +1,8 @@
+/* minimalist, professional styles for App */
+body {
+  background: #fff;
+  color: #222;
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}

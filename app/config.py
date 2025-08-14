@@ -5,7 +5,7 @@ import os
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost/research_matching"
+    DATABASE_URL: str = "postgresql://user@localhost:5432/shadow"
     
     # Security
     SECRET_KEY: str = "your-secret-key-here"

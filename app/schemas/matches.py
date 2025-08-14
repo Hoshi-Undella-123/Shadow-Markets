@@ -98,7 +98,7 @@ class MatchResponse(MatchBase):
 class MatchRequestBase(BaseModel):
     match_id: int
     requester_id: int
-    requester_type: str = Field(..., regex="^(funder|researcher)$")
+    requester_type: str = Field(..., pattern="^(funder|researcher)$")
     request_type: RequestType = RequestType.INITIAL
     subject: Optional[str] = None
     message: str = Field(..., min_length=1)
@@ -131,7 +131,7 @@ class MatchResponseBase(BaseModel):
     match_id: int
     request_id: int
     responder_id: int
-    responder_type: str = Field(..., regex="^(funder|researcher)$")
+    responder_type: str = Field(..., pattern="^(funder|researcher)$")
     response_type: ResponseType
     subject: Optional[str] = None
     message: str = Field(..., min_length=1)

@@ -7,7 +7,7 @@ import uvicorn
 from app.config import settings
 from app.database import engine, get_db
 from app.models import Base
-from app.api.v1 import research, researchers, funders, matches, auth
+from app.api.v1 import research, researchers, funders, matches, auth, nih_projects_router, projects_router
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -38,7 +38,11 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(research.router, prefix="/api/v1/research", tags=["Research"])
 app.include_router(researchers.router, prefix="/api/v1/researchers", tags=["Researchers"])
 app.include_router(funders.router, prefix="/api/v1/funders", tags=["Funders"])
+
 app.include_router(matches.router, prefix="/api/v1/matches", tags=["Matches"])
+
+app.include_router(nih_projects_router, prefix="/api/v1/nih-projects", tags=["NIH Projects"])
+app.include_router(projects_router, prefix="/api/v1", tags=["Projects"])
 
 
 @app.get("/")

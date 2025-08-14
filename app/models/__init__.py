@@ -1,18 +1,21 @@
-from .research import ResearchPaper, ResearchField, PaperAuthor
+from .research import ResearchPaper, ResearchField
 from .researchers import Researcher, ResearcherProfile
-from .funders import Funder, FunderProfile, FunderInterest
+from .funders import Funder, FunderProfile, FunderInvolvement
 from .matches import Match, MatchRequest, MatchResponse
+from .nih_projects import NIHProject
+from app.database import Base
 
 __all__ = [
+    "Base",
     "ResearchPaper",
-    "ResearchField", 
-    "PaperAuthor",
+    "ResearchField",
     "Researcher",
     "ResearcherProfile",
     "Funder",
     "FunderProfile",
-    "FunderInterest",
+    "FunderInvolvement",
     "Match",
     "MatchRequest",
-    "MatchResponse"
-] 
+    "MatchResponse",
+    "NIHProject"
+]

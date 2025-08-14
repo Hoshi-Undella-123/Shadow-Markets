@@ -1,0 +1,29 @@
+.results-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+.results-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.08);
+  padding: 1.5rem 2rem;
+  min-width: 260px;
+  max-width: 350px;
+  flex: 1 1 260px;
+  transition: box-shadow 0.2s;
+}
+.results-card:hover {
+  box-shadow: 0 6px 24px rgba(99,102,241,0.18);
+}
+.results-loading, .results-error, .results-empty {
+  text-align: center;
+  color: #6366f1;
+  font-size: 1.2rem;
+  margin: 2rem 0;
+}
+.results-error {
+  color: #ef4444;
+}

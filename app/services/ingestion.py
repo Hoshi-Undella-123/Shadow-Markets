@@ -27,12 +27,78 @@ async def ingest_research_data(db: Session, request: IngestionRequest) -> Dict:
             result = await _ingest_arxiv_data(db, request)
         elif request.source == DataSource.SEMANTIC_SCHOLAR:
             result = await _ingest_semantic_scholar_data(db, request)
+        elif request.source == DataSource.PUBMED:
+            result = await _ingest_pubmed_data(db, request)
+        elif request.source == "crossref":
+            result = await _ingest_crossref_data(db, request)
+        elif request.source == "doaj":
+            result = await _ingest_doaj_data(db, request)
         else:
             result["errors"].append(f"Unsupported data source: {request.source}")
-            
     except Exception as e:
-        result["errors"].append(f"Error during ingestion: {str(e)}")
-    
+        # Always return a valid JSON error
+        import traceback
+        result["errors"].append(f"Error during ingestion: {str(e)}\n{traceback.format_exc()}")
+    # Guarantee valid JSON
+    for k in ["papers_ingested", "papers_updated"]:
+        if k not in result:
+            result[k] = 0
+    if "errors" not in result or not isinstance(result["errors"], list):
+        result["errors"] = [str(result.get("errors", "Unknown error"))]
+    return result
+async def _ingest_crossref_data(db: Session, request: IngestionRequest) -> Dict:
+    """
+    Ingest data from CrossRef
+    """
+    import time
+    result = {"papers_ingested": 0, "papers_updated": 0, "errors": []}
+    try:
+        base_url = "https://api.crossref.org/works"
+        params = {"query": request.query or "machine learning", "rows": min(request.max_results, 100)}
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        for item in data.get("message", {}).get("items", []):
+            try:
+                doi = item.get("DOI")
+                existing_paper = db.query(ResearchPaper).filter(ResearchPaper.doi == doi).first() if doi else None
+                if existing_paper and not request.force_refresh:
+                    continue
+                authors = [f"{a.get('given', '')} {a.get('family', '')}".strip() for a in item.get("author", [])]
+                authors_json = json.dumps(authors)
+                paper_data = {
+                    "title": item.get("title", [""])[0],
+                    "abstract": item.get("abstract", ""),
+                    "authors": authors_json,
+                    "doi": doi,
+                    "journal": item.get("container-title", [""])[0],
+                    "publication_date": None,
+                    "citation_count": item.get("is-referenced-by-count", 0),
+                    "status": "published",
+                    "data_source": "crossref",
+                    "last_ingested": datetime.utcnow()
+                }
+                if existing_paper:
+                    for key, value in paper_data.items():
+                        if value is not None:
+                            setattr(existing_paper, key, value)
+                    result["papers_updated"] += 1
+                else:
+                    new_paper = ResearchPaper(**paper_data)
+                    db.add(new_paper)
+                    result["papers_ingested"] += 1
+            except Exception as e:
+                result["errors"].append(f"Error processing CrossRef paper: {str(e)}")
+        db.commit()
+    except Exception as e:
+        result["errors"].append(f"Error ingesting CrossRef data: {str(e)}")
+    return result
+
+async def _ingest_doaj_data(db: Session, request: IngestionRequest) -> Dict:
+    """
+    Ingest data from DOAJ (Directory of Open Access Journals)
+    """
+    result = {"papers_ingested": 0, "papers_updated": 0, "errors": ["DOAJ ingestion not yet implemented"]}
     return result
 
 
@@ -206,13 +272,61 @@ async def _ingest_semantic_scholar_data(db: Session, request: IngestionRequest) 
 
 async def _ingest_pubmed_data(db: Session, request: IngestionRequest) -> Dict:
     """
-    Ingest data from PubMed (placeholder for future implementation)
+    Ingest data from PubMed (Entrez E-utilities)
     """
-    result = {
-        "papers_ingested": 0,
-        "papers_updated": 0,
-        "errors": ["PubMed ingestion not yet implemented"]
-    }
+    import xml.etree.ElementTree as ET
+    result = {"papers_ingested": 0, "papers_updated": 0, "errors": []}
+    try:
+        base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+        params = {"db": "pubmed", "term": request.query or "machine learning", "retmax": str(request.max_results), "retmode": "json"}
+        search_resp = requests.get(base_url, params=params)
+        search_resp.raise_for_status()
+        ids = search_resp.json().get("esearchresult", {}).get("idlist", [])
+        if not ids:
+            return result
+        fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+        fetch_params = {"db": "pubmed", "id": ",".join(ids), "retmode": "xml"}
+        fetch_resp = requests.get(fetch_url, params=fetch_params)
+        fetch_resp.raise_for_status()
+        root = ET.fromstring(fetch_resp.content)
+        for article in root.findall(".//PubmedArticle"):
+            try:
+                article_title = article.findtext(".//ArticleTitle", default="")
+                abstract = article.findtext(".//Abstract/AbstractText", default="")
+                authors = []
+                for author in article.findall(".//Author"):
+                    last = author.findtext("LastName", default="")
+                    first = author.findtext("ForeName", default="")
+                    if first or last:
+                        authors.append(f"{first} {last}".strip())
+                authors_json = json.dumps(authors)
+                pmid = article.findtext(".//PMID", default=None)
+                existing_paper = db.query(ResearchPaper).filter(ResearchPaper.doi == pmid).first() if pmid else None
+                paper_data = {
+                    "title": article_title,
+                    "abstract": abstract,
+                    "authors": authors_json,
+                    "doi": pmid,
+                    "journal": article.findtext(".//Journal/Title", default=""),
+                    "publication_date": None,
+                    "status": "published",
+                    "data_source": "pubmed",
+                    "last_ingested": datetime.utcnow()
+                }
+                if existing_paper:
+                    for key, value in paper_data.items():
+                        if value is not None:
+                            setattr(existing_paper, key, value)
+                    result["papers_updated"] += 1
+                else:
+                    new_paper = ResearchPaper(**paper_data)
+                    db.add(new_paper)
+                    result["papers_ingested"] += 1
+            except Exception as e:
+                result["errors"].append(f"Error processing PubMed paper: {str(e)}")
+        db.commit()
+    except Exception as e:
+        result["errors"].append(f"Error ingesting PubMed data: {str(e)}")
     return result
 
 

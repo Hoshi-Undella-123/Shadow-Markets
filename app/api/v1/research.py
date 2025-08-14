@@ -13,7 +13,13 @@ from app.schemas.research import (
 )
 from app.services.ingestion import ingest_research_data
 
+
 router = APIRouter()
+
+# Health check endpoint
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 @router.get("/", response_model=List[ResearchPaperResponse])

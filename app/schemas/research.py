@@ -15,6 +15,8 @@ class DataSource(str, Enum):
     ARXIV = "arxiv"
     SEMANTIC_SCHOLAR = "semantic_scholar"
     PUBMED = "pubmed"
+    CROSSREF = "crossref"
+    DOAJ = "doaj"
     MANUAL = "manual"
 
 
